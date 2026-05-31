@@ -1,0 +1,6 @@
+requests==2.34.2
+dotenv==0.9.9
+bs4==0.0.2
+django==6.0.5
+qdrant_client==1.18.0
+sentence_transformers==5.5.1
