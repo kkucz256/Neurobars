@@ -15,7 +15,7 @@ def search_similar_songs(query_text, limit=1):
 
 
 if __name__ == "__main__":
-    test_query = "something about jews"
+    test_query = "Loving kanye"
 
     print(f"Searching for: '{test_query}'...")
     points = search_similar_songs(test_query, limit=1)

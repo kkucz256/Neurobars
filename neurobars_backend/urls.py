@@ -17,9 +17,9 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
-from lyrics import views
+from lyrics.api import api
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('api/search/', views.search_lyrics_api, name='search_lyrics_api'),
+    path('api/', api.urls),
 ]
