@@ -5,10 +5,12 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 from sentence_transformers import SentenceTransformer
 import re
 import uuid
+import os
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        client = QdrantClient(url="http://localhost:6333")
+        qdrant_host = os.environ.get("QDRANT_HOST", "localhost")
+        client = QdrantClient(url=f"http://{qdrant_host}:6333")
         model = SentenceTransformer('all-MiniLM-L6-v2')
 
         if not client.collection_exists("lyrics_collection"):

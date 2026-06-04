@@ -5,4 +5,4 @@ django==6.0.5
 qdrant-client==1.18.0
 sentence-transformers==5.5.1
 groq==1.4.0
-django-ninja-1.6.2
+django-ninja==1.6.2

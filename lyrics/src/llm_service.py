@@ -49,3 +49,54 @@ def generate_qdrant_query(user_question):
         return chat_completion.choices[0].message.content.strip()
     except Exception:
         return user_question
+    
+def generate_lyrics_in_style(artist_name, topic, style_context):
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    
+    system_prompt = (
+        f"You are the ghostwriter for the rapper {artist_name}. "
+        "Your task is to write a brand new, highly creative rap verse (16 bars) in English based on the TOPIC provided by the user. "
+        f"CRITICAL: You must perfectly mimic the rhyming style, flow, vocabulary, rhythm, and emotional vibe of {artist_name}. "
+        "Use the provided STYLE CONTEXT as examples of how this artist writes. Do not copy lines directly, but match the essence. "
+        "Output ONLY the lyrics of the new verse, formatted with line breaks. Do not include introductory text, explanations, or music notes."
+    )
+    
+    user_content = f"STYLE CONTEXT (Original verses by {artist_name}):\n{style_context}\n\nTOPIC for the new verse: {topic}"
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+        )
+        return chat_completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error generating lyrics: {str(e)}"
+    
+    
+def generate_quiz_riddle(lyrics_snippet):
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    
+    system_prompt = (
+        "You are a hip-hop quiz master. Your job is to read the provided rap lyrics snippet and create a short, "
+        "engaging riddle in English (2-3 sentences max) that describes the themes, style, vocabulary, or content of the lyrics, "
+        "WITHOUT ever mentioning the artist's name, track title, or quoting large parts of the text directly. "
+        "The riddle must help the user guess who wrote these bars based on their style and message. "
+        "Output ONLY the final riddle text. No intro, no outro."
+    )
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Create a riddle based on this lyrics snippet:\n{lyrics_snippet}"}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.2,
+        )
+        return chat_completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Could not generate a riddle: {str(e)}"
