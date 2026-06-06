@@ -15,15 +15,15 @@ API_URL = "https://api.genius.com"
 
 
 class Command(BaseCommand):
-    help = "Fetch lyrics from Genius API, clean them, and save directly to SQLite."
+    help = "Fetch lyrics for multiple artists from Genius API, clean them, and save to SQLite."
 
     def add_arguments(self, parser):
-        parser.add_argument("artist_name", type=str, help="Name of the artist to fetch")
+        parser.add_argument("artists", type=str, nargs="+", help="List of artist names separated by spaces")
         parser.add_argument(
             "--pages",
             type=int,
             default=1,
-            help="Number of API pages to fetch (1 page = 10 songs)",
+            help="Number of API pages to fetch per artist (1 page = 10 songs)",
         )
 
     def fetch_genius_search_results(self, artist_name, page=1):
@@ -71,56 +71,55 @@ class Command(BaseCommand):
         return False
 
     def handle(self, *args, **options):
-        artist = options["artist_name"]
+        artist_list = options["artists"]
         max_pages = options["pages"]
 
         self.stdout.write(
             self.style.MIGRATE_LABEL(
-                f"Starting fetch pipeline for: {artist} (Pages to process: {max_pages})..."
+                f"Starting bulk fetch pipeline for {len(artist_list)} artists. Pages per artist: {max_pages}."
             )
         )
 
-        total_added = 0
-        total_updated = 0
+        global_added = 0
+        global_updated = 0
 
-        for page in range(1, max_pages + 1):
-            self.stdout.write(f"--- Fetching page {page} of {max_pages} ---")
-            search_results = self.fetch_genius_search_results(artist, page=page)
+        for artist in artist_list:
+            self.stdout.write(self.style.MIGRATE_LABEL(f"\n==================== PROCESSING: {artist} ===================="))
+            
+            for page in range(1, max_pages + 1):
+                self.stdout.write(f"--- {artist}: Fetching page {page} of {max_pages} ---")
+                search_results = self.fetch_genius_search_results(artist, page=page)
 
-            if not search_results:
-                self.stdout.write("No more results found on Genius API.")
-                break
+                if not search_results:
+                    self.stdout.write(f"No more results found for {artist} on Genius API.")
+                    break
 
-            for song in search_results:
-                title = song["result"]["title"]
-                url = song["result"]["url"]
-                actual_artist = song["result"]["primary_artist"]["name"]
-                
-                delay = random.uniform(1.5, 3.5)
-                self.stdout.write(f"Sleeping for {delay:.2f}s to prevent rate limiting...")
-                time.sleep(delay)
+                for song in search_results:
+                    title = song["result"]["title"]
+                    url = song["result"]["url"]
+                    actual_artist = song["result"]["primary_artist"]["name"]
+                    
+                    delay = random.uniform(1.5, 3.5)
+                    self.stdout.write(f"Sleeping for {delay:.2f}s to prevent rate limiting...")
+                    time.sleep(delay)
 
-                self.stdout.write(f"Scraping lyrics for: {title}...")
-                lyrics = self.scrape_lyrics_from_url(url)
+                    self.stdout.write(f"Scraping lyrics for: {title}...")
+                    lyrics = self.scrape_lyrics_from_url(url)
 
-                if lyrics and lyrics != "Lyrics not found.":
-                    song_obj, created = Song.objects.update_or_create(
-                        title=title, artist=actual_artist, defaults={"lyrics": lyrics}
-                    )
-
-                    if created:
-                        self.stdout.write(
-                            self.style.SUCCESS(f"Successfully ADDED: {title}")
+                    if lyrics and lyrics != "Lyrics not found.":
+                        song_obj, created = Song.objects.update_or_create(
+                            title=title, artist=actual_artist, defaults={"lyrics": lyrics}
                         )
-                        total_added += 1
-                    else:
-                        self.stdout.write(
-                            self.style.WARNING(f"Successfully UPDATED: {title}")
-                        )
-                        total_updated += 1
+
+                        if created:
+                            self.stdout.write(self.style.SUCCESS(f"Successfully ADDED: {title} ({actual_artist})"))
+                            global_added += 1
+                        else:
+                            self.stdout.write(self.style.WARNING(f"Successfully UPDATED: {title} ({actual_artist})"))
+                            global_updated += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"\nPipeline finished. Added: {total_added}, Updated: {total_updated}."
+                f"\n[BULK PIPELINE FINISHED] Total Added: {global_added}, Total Updated: {global_updated}."
             )
         )

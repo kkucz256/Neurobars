@@ -1,5 +1,41 @@
 import os
 from groq import Groq
+import json
+
+import json
+
+def validate_hiphop_intent(query):
+    from groq import Groq
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    
+    system_prompt = (
+        "You are a strict security guardrail API. Evaluate if the user query is about hip-hop music, rap culture, artists, or lyrics. "
+        "If the query is unrelated (e.g., coding, general knowledge, tech, help, recipes, math), you MUST classify it as invalid. "
+        "You must respond ONLY with a raw JSON object matching this schema: {\"valid\": true} or {\"valid\": false}. "
+        "Do not include any chat formatting, markdown backticks, or explanations."
+    )
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+            response_format={"type": "json_object"}
+        )
+        
+        raw_response = chat_completion.choices[0].message.content.strip()
+        
+        print(f"--- GUARDRAIL RAW RESPONSE: {raw_response} ---", flush=True)
+        
+        data = json.loads(raw_response)
+        return bool(data.get("valid", False))
+        
+    except Exception as e:
+        print(f"--- GUARDRAIL EXCEPTION: {str(e)} ---", flush=True)
+        return True
 
 def ask_llm_rag(context_lyrics, user_question):
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -76,7 +112,6 @@ def generate_lyrics_in_style(artist_name, topic, style_context):
     except Exception as e:
         return f"Error generating lyrics: {str(e)}"
     
-    
 def generate_quiz_riddle(lyrics_snippet):
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     
@@ -100,3 +135,26 @@ def generate_quiz_riddle(lyrics_snippet):
         return chat_completion.choices[0].message.content.strip()
     except Exception as e:
         return f"Could not generate a riddle: {str(e)}"
+    
+def ask_llm_without_context(user_question):
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    
+    system_prompt = (
+        "You are an uncompromising hip-hop expert and critic. "
+        "The local database did not provide matching song lyrics for this query. "
+        "Answer the user's question using your vast, general real-world knowledge about hip-hop history and artists. "
+        "CRITICAL: Write your entire response exclusively in English. Be concise, sharp, and savvy."
+    )
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_question}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.5,
+        )
+        return chat_completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error processing request without context: {str(e)}"
