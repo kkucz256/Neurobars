@@ -20,3 +20,9 @@ qdrant_storage/
 
 .DS_Store
 Thumbs.db
+
+neurobars_frontend/node_modules/
+neurobars_frontend/dist/
+neurobars_frontend/.output/
+neurobars_frontend/.next/
+neurobars_frontend/package-lock.json.lock
